@@ -1,16 +1,15 @@
 const path = require('path');
 const webpack = require('webpack');
-
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const HtmlWebpackIncludeAssetsPlugin = require('html-webpack-include-assets-plugin');
+const ProvidePlugin = webpack.ProvidePlugin;
 
 module.exports = {
-	devtool: 'cheap-eval-source-map',
+	devtool: 'cheap-module-eval-source-map',
 	entry: {
-		bundle: __dirname + '/app/index.js',
-		// common: [''] //提取公共库
+		bundle: __dirname + '/app/index.js'
 	},
 	output: {
 		path: path.join(__dirname, '/dist'),
@@ -28,23 +27,21 @@ module.exports = {
 			exclude: /node_modules/,
 			loader: 'babel-loader'
 		},{
-			test: /\.scss$/,
-			exclude: /node_modules/,
-			loader: ExtractTextPlugin.extract({
-				fallback: 'style-loader',
-				use: ['css-loader', 'sass-loader']
-			})
-		},{
 			test: /\.(png|jpg)$/,
 			exclude: /node_modules/,
 			loader: 'url-loader?limit=8192'
 		},{
+			test: /\.less$/,
+      exclude: /^node_modules$/,
+      loaders: ['style-loader', 'css-loader', 'less-loader']
+		},{
+			test: /\.scss$/,
+			exclude: /node_modules/,
+			loaders: ['style-loader', 'css-loader', 'sass-loader', 'autoprefixer-loader']
+		},{
 			test: /\.css$/,
 			exclude: /node_modules/,
-			loader: ExtractTextPlugin.extract({
-				fallback: 'style-loader',
-				use: ['css-loader']
-			})
+			loaders: ['style-loader', 'css-loader', 'autoprefixer-loader']
 		},{
 			test: /\.(woff|eot|ttf|svg|gif)/,
 			exclude: /node_modules/,
@@ -52,13 +49,6 @@ module.exports = {
 		}]
 	},
 	plugins: [
-		//UglifyJsPlugin 推荐只在生产环境使用
-		//服务器端还可以开启 gzip 压缩
-		new webpack.optimize.UglifyJsPlugin({
-			compress: {
-				warnings: false
-			}
-		}),
 		//根据模板自动生成html
 		new HtmlWebpackPlugin({
 			filename: 'index.html',
@@ -69,23 +59,21 @@ module.exports = {
 				removeComments: true //是否在压缩时去除注释
 			}
 		}),
-		//分类css
-		new ExtractTextPlugin('[name].[chunkhash:8].css'),
-		//清除旧文件
-		new CleanWebpackPlugin(['dist/[name].*.js', 'dist/[name].*.js.map'], {
-			root: __dirname,
-			verbose: true, //开启在控制台输出信息
-			dry: false //启用删除文件
-		}),
-		//dll
-		new webpack.DllReferencePlugin({
-			context: __dirname,
-			manifest: require('./manifest.json')
-		}),
-		//引入dll
-		new HtmlWebpackIncludeAssetsPlugin({
-			assets: [],
-			append: true
+		new webpack.optimize.DedupePlugin(),
+		new ProvidePlugin({
+			$: 'jquery',
+			jQuery: 'jquery',
+			'window.jQuery': 'jquery'
 		})
-	]
+	],
+	devServer: {
+    publicPath: '/',
+    contentBase: path.join(__dirname, 'dist'),
+    inline: true,
+    historyApiFallback: true, //这在设置前端路由时必须为true
+    hot: false,
+    host: '0.0.0.0',
+    port: 3002,
+    compress: true //是否启用gzip压缩
+  }
 }
